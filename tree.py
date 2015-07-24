@@ -4,7 +4,7 @@ import collections
 
 class Tree:
     """
-    See docs/NavigatorTreeClassDesign
+    A general Tree class, use as base tree class.
     """
     def __init__(self):
         self.parent = None

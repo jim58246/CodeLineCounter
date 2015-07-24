@@ -1,0 +1,6 @@
+ROOT - Total: 636, Code: 525, Comment: 11, Blank: 100
++--- CodeLineCounter - Total: 636, Code: 525, Comment: 11, Blank: 100
+     +--- clc.py - Total: 133, Code: 103, Comment: 7, Blank: 23
+     +--- gui.py - Total: 160, Code: 127, Comment: 3, Blank: 30
+     +--- obsqueue.py - Total: 83, Code: 69, Comment: 0, Blank: 14
+     +--- tree.py - Total: 260, Code: 226, Comment: 1, Blank: 33

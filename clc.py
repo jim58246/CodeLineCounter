@@ -1,6 +1,11 @@
+"""
+cmd line usage:  clc [dir_or_file]
+if dir_or_file is not provided, then current work directory will be used.
+"""
 __author__ = 'jim'
 
 import os
+from tree import Tree
 
 
 def analyse_file(counter):
@@ -38,51 +43,55 @@ class Counter:
                                                                     self.line_comment, self.line_blank)
 
 
-class Tree:
-    def __init__(self, directory_or_file, parent=None):
-        self.parent = parent
-        self.children = []
+class CounterTree(Tree):
+    def __init__(self, directory_or_file):
+        Tree.__init__(self)
         self.counter = Counter(directory_or_file)
 
     def calc(self, node=None, cbk=None):
+        # Return value indicates go on or not.
+        # outside don't fill node. the node parameter is here to provide recursion ability for this method.
         if node is None:
             node = self
 
-        if node.is_leaf():
+        go_on = True
+        if (node.is_leaf() and
+                not node.is_root()):  # root node is always not file, it's a dummy directory.
             analyse_file(node.counter)
         else:
             for child in node.children:
-                self.calc(child, cbk)
+                go_on = self.calc(child, cbk)
                 node.counter += child.counter
+                if not go_on:
+                    break
 
         if callable(cbk):
-            cbk(node)
-
-    def is_leaf(self):
-        if self.children:
-            return False
-        else:
-            return True
-
-    def append_child(self, node):
-        self.children.append(node)
-        node.parent = self
+            go_on = cbk(node)
+        return go_on
 
     def __str__(self):
+        return '{} - {}'.format(os.path.split(self.counter.dof)[1], self.counter)
+
+    @property
+    def name(self):
         return os.path.split(self.counter.dof)[1]
 
 
 class DirBuilder:
     def __init__(self, directory_or_file):
-        self.tree = Tree('ROOT')
+        self.tree = CounterTree('ROOT')
         self.dof = directory_or_file
 
-    def _setup_a_tree(self, parent_node: Tree, directory_or_file: str):
+    def _setup_a_tree(self, parent_node: CounterTree, directory_or_file: str):
+        """
+        For directory, if it contains no valid files nor sub directories, it will not be add in
+        the tree.
+        """
         dof = directory_or_file
         if os.path.exists(dof):
             if os.path.isdir(dof):
                 # it's a directory
-                dof_node = Tree(directory_or_file=dof)
+                dof_node = CounterTree(directory_or_file=dof)
                 for entry in os.listdir(dof):
                     self._setup_a_tree(dof_node, os.path.join(dof, entry))
                 if not dof_node.is_leaf():
@@ -90,7 +99,7 @@ class DirBuilder:
             else:
                 # it's a file
                 if dof.endswith('.py'):
-                    parent_node.append_child(Tree(directory_or_file=dof))
+                    parent_node.append_child(CounterTree(directory_or_file=dof))
         else:
             raise ValueError('Directory or file "{}" invalid'.format(self.dof))
 
@@ -99,12 +108,26 @@ class DirBuilder:
         self._setup_a_tree(self.tree, self.dof)
 
     def calc(self):
-        self.tree.calc(cbk=lambda node: print('.', end='', flush=True))
-        print('')
+        self.tree.calc(cbk=self.cbk_analyse)
+
+    def cbk_analyse(self, node):
+        """
+        This method is called after each node has been analysed during calc method running.
+        Return value indicates go on or not.
+        """
+        print('.', end='', flush=True)
+        return True
 
 
 if __name__ == '__main__':
-    db = DirBuilder(os.getcwd())
+    import sys
+    if len(sys.argv) > 1:
+        dof = sys.argv[1]
+    else:
+        dof = os.getcwd()
+
+    db = DirBuilder(dof)
     db.setup()
     db.calc()
-    print(db.tree.counter)
+    print('')
+    print(db.tree.text_tree())
